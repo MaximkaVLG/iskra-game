@@ -10,8 +10,8 @@ function writeNode(node,words=false){
 export function displayFormula(formula){return writeNode(parse(formula));}
 export function readFormula(formula){return writeNode(parse(formula),true);}
 export function mathMarkup(formula){
-  const text=displayFormula(formula);
-  return `<span class="math-expression" role="math" aria-label="${escape(readFormula(formula))}">${text.split(/(¬ [A-Z01]|[¬∧∨⊕→↔↑↓])/).map(t=>/^¬ [A-Z01]$/.test(t)?`<span class="math-atom"><span class="math-op" aria-hidden="true">¬</span> ${t.at(-1)}</span>`:OPS[t]?`<span class="math-op" aria-hidden="true">${t}</span>`:escape(t)).join('')}</span>`;
+  const tree=parse(formula),text=writeNode(tree),singleLine=steps(tree).length<=2&&text.length<=16;
+  return `<span class="math-expression${singleLine?' math-single-line':''}" role="math" aria-label="${escape(readFormula(formula))}">${text.split(/(¬ [A-Z01]|[¬∧∨⊕→↔↑↓])/).map(t=>/^¬ [A-Z01]$/.test(t)?`<span class="math-atom"><span class="math-op" aria-hidden="true">¬</span> ${t.at(-1)}</span>`:OPS[t]?`<span class="math-op" aria-hidden="true">${t}</span>`:escape(t)).join('')}</span>`;
 }
 export function operatorGuide(formula){
   const tree=parse(formula),symbols=[...new Set(steps(tree).map(n=>n.op))];

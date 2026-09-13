@@ -1,6 +1,6 @@
 const BASE=new URL('./',self.location.href);
 const PREFIX='iskra-'+BASE.pathname.replace(/[^a-z0-9]/gi,'_')+'-';
-const CACHE=PREFIX+'iphone-v5';
+const CACHE=PREFIX+'iphone-v6';
 const HOME=BASE.href;
 const ASSETS=['./','index.html','style.css','readability.css','play.css','arena.css','iphone.css','app.js','course.js','logic.js','progress.js','play-content.js','gameplay.js','math-view.js','arena.js','arena-ui.js','auto-advance.js','assets/iskra.png','assets/glade.png','assets/chest.png','favicon.svg','manifest.webmanifest','assets/icon-192.png','assets/icon-512.png','assets/manrope-regular.ttf','assets/manrope-bold.ttf','assets/stix-two-math.ttf'].map(path=>new URL(path,BASE).href);
 self.addEventListener('install',event=>{event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(ASSETS)).then(()=>self.skipWaiting()));});
