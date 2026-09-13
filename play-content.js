@@ -1,4 +1,4 @@
-import {parse,evaluate,steps} from './logic.js';
+import {parse,evaluate,steps,assignments} from './logic.js';
 
 export const discoveries = [
   ['Огонёк правды','1','Верно — это 1. Неверно — 0.'],
@@ -54,6 +54,35 @@ const gates = [
   {kind:'gate',title:'Последние ворота',action:'Открой проход. Формула уже тебе знакома.',rule:'Сначала скобки, затем ИЛИ. По одному шагу.',formula:'¬Y ∨ (¬X ∧ Z)',initial:{X:1,Y:1,Z:0},target:1}
 ];
 export function introFor(lesson){return gates[Number(lesson.id.slice(1))-1];}
+const introWords=[
+  ['Правда — 1, неправда — 0','Нажми «Разбудить Искру». Фраза станет правдой.','Фраза «Искра проснулся» верна, когда он не спит.'],
+  ['Буква X заменяет фразу','Поставь X = 1: дверь открыта.','X — «дверь открыта». 1 — открыта, 0 — закрыта.'],
+  ['НЕ переворачивает значение','Поставь X = 0. Посмотри, что получится у НЕ X.','¬ читается «НЕ». Отрицание меняет 0 на 1 и 1 на 0.'],
+  ['Два НЕ — два переворота','Поставь X = 1 и проследи два переворота.','Двойное отрицание возвращает исходное значение.'],
+  ['И: нужны две единицы','Сделай X = 1 и Y = 1.','∧ читается «И», называется конъюнкцией.'],
+  ['ИЛИ: хватит одной единицы','Поставь 1 хотя бы на одной карточке.','∨ читается «ИЛИ», называется дизъюнкцией.'],
+  ['Либо одно, либо другое','Оставь 1 только на одной карточке.','⊕ даёт 1, когда значения разные.'],
+  ['НЕ-ИЛИ: нужны два нуля','Сделай X = 0 и Y = 0.','↓ — стрелка Пирса: сначала ИЛИ, потом НЕ.'],
+  ['Если X, то Y','X уже равен 1. Поставь Y = 1.','→ — импликация. Только 1 → 0 даёт 0.'],
+  ['Направление важно','Меняй X и Y, чтобы Y → X стало 0.','У стрелки важен порядок: слева условие, справа следствие.'],
+  ['Одинаковые значения','Сделай X и Y одинаковыми.','↔ — эквиваленция. Совпадают значения — результат 1.'],
+  ['Сначала считаем скобки','Найди значения, при которых результат 0.','Сначала X ∧ Y, затем стрелка к Z.'],
+  ['Четыре набора значений','Переключай X и Y. Собери 00, 01, 10 и 11.','Одна строка таблицы — один набор значений.'],
+  ['По одной операции','Найди значения, при которых результат 0.','Сначала НЕ X, затем ИЛИ с Y.'],
+  ['Три буквы — восемь наборов','Переключай X, Y и Z. Собери все 8 наборов.','Каждая буква принимает 0 или 1. Получается 2 × 2 × 2 набора.'],
+  ['Всегда истина','Проверь X = 0 и X = 1.','X ИЛИ НЕ X всегда даёт 1. Это тавтология.']
+];
+export function introCopy(lesson){const cfg=introFor(lesson),copy=introWords[Number(lesson.id.slice(1))-1];return copy?{title:copy[0],goal:copy[1],rule:copy[2]}:{title:cfg.title,goal:cfg.action.replace('огоньки','X и Y'),rule:cfg.rule};}
+export function introInstruction(lesson,state){
+  const cfg=introFor(lesson);if(cfg.kind==='spell')return 'Нажми на подходящую формулу.';
+  if(cfg.kind==='wake')return state.env.X?'Искра проснулся: это правда — 1.':'Нажми на кнопку внизу.';
+  if(state.solved)return 'Можно переключать ещё и проверять результат.';
+  const keys=Object.keys(state.env),variants=assignments(keys);
+  const candidates=variants.filter(env=>cfg.kind==='scan'?!state.seen.includes(Object.values(env).join('')):cfg.kind==='compare'?evaluate(parse(cfg.formula),env)!==evaluate(parse(cfg.other),env):evaluate(parse(cfg.formula),env)===cfg.target);
+  const distance=env=>keys.filter(k=>env[k]!==state.env[k]).length;
+  const target=candidates.sort((a,b)=>distance(a)-distance(b))[0],key=target&&keys.find(k=>target[k]!==state.env[k]);
+  return key?`Нажми на ${key}: поменяй ${state.env[key]} на ${target[key]}.`:'Нажми на карточку: 0 меняется на 1 и обратно.';
+}
 export function newIntro(lesson){const intro=introFor(lesson),env={...intro.initial};return {env,moves:0,seen:intro.formula?[Object.values(env).join('')]:[],picked:null,solved:false};}
 export function introComplete(lesson,state){const cfg=introFor(lesson);if(!state||state.moves<1)return false;if(cfg.kind==='spell')return state.picked===cfg.answer;if(cfg.kind==='scan')return new Set(state.seen).size===2**Object.keys(state.env).length;if(cfg.kind==='compare')return evaluate(parse(cfg.formula),state.env)!==evaluate(parse(cfg.other),state.env);return evaluate(parse(cfg.formula),state.env)===cfg.target;}
 export function moveIntro(lesson,state,key){const cfg=introFor(lesson),next={...state,env:{...state.env},seen:[...state.seen],moves:state.moves+1};if(cfg.kind==='spell'){if(!Number.isInteger(key)||!cfg.choices[key])throw Error('Неизвестное заклинание');next.picked=key;}else{if(!Object.hasOwn(next.env,key))throw Error('Неизвестный огонёк');next.env[key]=1-next.env[key];next.seen=[...new Set([...next.seen,Object.values(next.env).join('')])];}next.solved=state.solved||introComplete(lesson,next);return next;}
